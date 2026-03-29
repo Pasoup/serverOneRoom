@@ -77,6 +77,7 @@ def get_room_info(username: str = None):
             "description": room.description,
             "roomID": room.getRoomID(),
             "color": room.color,
+            "admin_name": room.getAdmin().getName(),
             "role": "admin" if is_admin else "member",
         }
     
