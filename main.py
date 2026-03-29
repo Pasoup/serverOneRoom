@@ -1,5 +1,5 @@
 import os
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel
 import ZODB, ZODB.FileStorage
 import transaction
@@ -8,7 +8,8 @@ from classFiles.RoomClass import RoomObj, Chat, Workshop
 
 app = FastAPI()
 
-storage = ZODB.FileStorage.FileStorage('room1.fs')
+db_path = "/data/room1.fs" if os.path.exists("/data") else "room1.fs"
+storage = ZODB.FileStorage.FileStorage(db_path)
 db = ZODB.DB(storage)
 connection = db.open()
 root = connection.root
@@ -68,3 +69,35 @@ def get_room_info():
         "admin": room.getAdmin().getName(),
         "description": room.getDescription()
     }
+
+
+
+# Manages users typing in the workshop
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: list[WebSocket] = []
+
+    async def connect(self, websocket: WebSocket):
+        await websocket.accept()
+        self.active_connections.append(websocket)
+
+    def disconnect(self, websocket: WebSocket):
+        self.active_connections.remove(websocket)
+
+    async def broadcast(self, message: str):
+        for connection in self.active_connections:
+            await connection.send_text(message)
+
+manager = ConnectionManager()
+
+@app.websocket("/ws/workshop")
+async def websocket_endpoint(websocket: WebSocket):
+    await manager.connect(websocket)
+    try:
+        while True:
+            # Receive typing data from one user
+            data = await websocket.receive_text()
+            # Send that data to EVERYONE else in the room
+            await manager.broadcast(data)
+    except WebSocketDisconnect:
+        manager.disconnect(websocket)

@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+pydantic
+ZODB
+zope.interface
+transaction
+BTrees
+websockets
