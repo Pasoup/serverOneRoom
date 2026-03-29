@@ -143,7 +143,7 @@ async def join_room(data: JoinRequest):
 
 @app.get("/get_members")
 async def get_members(roomID: str):
-    room = root_obj.active_room
+    room = root_obj.get('active_room')
 
     if not room or room.getRoomID() != roomID:
             raise HTTPException(status_code=404, detail="Room not found")
