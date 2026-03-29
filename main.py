@@ -82,6 +82,17 @@ def get_room_info(username: str = None):
     
     return {"status": "access_denied"}
 
+
+@app.get("/room_info/free")
+def get_free_info():
+    room = root.active_room
+    return {
+        "status" : "activate",
+        "name" : room.getRoomName(),
+        "description" : room.description,
+        "roomID" : room.getRoomID()
+    }
+
 @app.get("/room_members")
 def get_room_members():
     if root.active_room is None:
@@ -121,6 +132,7 @@ async def websocket_endpoint(websocket: WebSocket):
         manager.disconnect(websocket)
 
 root_obj = connection.root()
+
 
 
 @app.post("/join_room")
