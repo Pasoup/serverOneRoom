@@ -120,33 +120,32 @@ async def websocket_endpoint(websocket: WebSocket):
     except WebSocketDisconnect:
         manager.disconnect(websocket)
 
+root_obj = connection.root()
 
-# Example of what your Render Server (FastAPI) might be doing:
+
 @app.post("/join_room")
 async def join_room(data: JoinRequest):
-    # 1. Find the room in the database
-    room = db.rooms.find_one({"roomID": data.roomID})
+    room = root_obj.active_room  
     
-    if not room:
-        raise HTTPException(status_code=404, detail="Room not found!")
+    if not room or room.getRoomID() != data.roomID:
+        raise HTTPException(status_code=404, detail="Room not found on this server!")
 
-    # 2. Add the user to the members list (if not already there)
-    if data.username not in room["members"]:
-        db.rooms.update_one(
-            {"roomID": data.roomID},
-            {"$push": {"members": data.username}}
-        )
+   
+    if data.username not in room.member:
+        room.member.append(data.username)
+        
     
-    return {"status": "success", "message": f"{data.username} joined {room['name']}"}
+        room._p_changed = True 
+        transaction.commit()
+    
+    return {"status": "success", "message": f"{data.username} joined {room.getRoomName()}"}
 
 
 @app.get("/get_members")
 async def get_members(roomID: str):
-    rooms_dict = root.get('rooms', {}) 
+    room = root_obj.active_room
 
-    room_obj = rooms_dict.get(roomID)
-    
-    if not room_obj:
-        raise HTTPException(status_code=404, detail="Room not found")
-        
-    return {"members": room_obj.getMember()}
+    if not room or room.getRoomID() != roomID:
+            raise HTTPException(status_code=404, detail="Room not found")
+            
+    return {"members": room.member}
