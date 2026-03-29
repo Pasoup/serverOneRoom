@@ -8,7 +8,7 @@ from classFiles.RoomClass import RoomObj, Chat, Workshop
 
 app = FastAPI()
 
-storage = ZODB.FileStorage.FileStorage('database.fs')
+storage = ZODB.FileStorage.FileStorage('room1.fs')
 db = ZODB.DB(storage)
 connection = db.open()
 root = connection.root
