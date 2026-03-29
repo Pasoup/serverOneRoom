@@ -33,7 +33,7 @@ class RoomCreateRequest(BaseModel):
 class JoinRequest(BaseModel):
     username: str
     roomID: str
-    
+
 
 @app.post("/claim_server")
 def claim_server(data: RoomCreateRequest):
@@ -142,11 +142,11 @@ async def join_room(data: JoinRequest):
 
 @app.get("/get_members")
 async def get_members(roomID: str):
-    # 1. Find the room in your database/storage
-    room = db.rooms.find_one({"roomID": roomID}) # Example using MongoDB
+    rooms_dict = root.get('rooms', {}) 
+
+    room_obj = rooms_dict.get(roomID)
     
-    if not room:
-        return {"error": "Room not found"}, 404
+    if not room_obj:
+        raise HTTPException(status_code=404, detail="Room not found")
         
-    # 2. Return the 'members' list (which is just a list of strings)
-    return {"members": room.get("members", [])}
+    return {"members": room_obj.getMember()}
