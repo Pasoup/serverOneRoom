@@ -34,6 +34,49 @@ class JoinRequest(BaseModel):
     username: str
     roomID: str
 
+class ChatMessage(BaseModel):
+    username: str
+    text: str
+    roomID: str
+
+@app.post("/send_chat")
+async def send_chat(msg: ChatMessage):
+    room = root_obj.get('active_room')
+    
+    if not room or room.getRoomID() != msg.roomID:
+        raise HTTPException(status_code=404, detail="Room not found")
+
+    
+    room.chat.addConversation(msg.text, msg.username)
+    
+    
+    room.chat._p_changed = True
+    room._p_changed = True
+    transaction.commit()
+    
+    return {"status": "success"}
+
+
+@app.get("/get_chat")
+async def get_chat(roomID: str):
+    room = root_obj.get('active_room')
+    
+    if not room or room.getRoomID() != roomID:
+        return []
+
+    history = room.chat.getChatHistory()
+    
+
+    output = []
+    for c in history:
+        time_obj, sender, content = c.getDetail()
+        output.append({
+            "time": time_obj.strftime("%H:%M"),
+            "sender": sender,
+            "content": content
+        })
+        
+    return output
 
 @app.post("/claim_server")
 def claim_server(data: RoomCreateRequest):
@@ -52,7 +95,7 @@ def claim_server(data: RoomCreateRequest):
         admin=creator_admin, 
         mem=[data.admin_name]
     )
-
+    new_room.chat = Chat()
     root.active_room = new_room
     transaction.commit()
     return {
