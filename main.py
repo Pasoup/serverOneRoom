@@ -33,8 +33,8 @@ class RoomCreateRequest(BaseModel):
 @app.post("/claim_server")
 def claim_server(data: RoomCreateRequest):
     creator_admin = Admin(
-            name=data.admin_name,
             gmail=data.admin_gmail,
+            name=data.admin_name,
             id=data.admin_id,
             pno=data.admin_pno
         )
