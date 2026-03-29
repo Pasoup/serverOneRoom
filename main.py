@@ -40,12 +40,12 @@ def claim_server(data: RoomCreateRequest):
         )
    
     new_room = RoomObj(
-        Rname=data.Rname,
-        RID=data.RID,
-        desc=data.desc,
+        Rname=data.name,
+        RID=data.roomID,
+        desc=data.description,
         color=data.color,
         admin=creator_admin, 
-        mem=[data.admin_username]
+        mem=[data.admin_name]
     )
 
     root.active_room = new_room
