@@ -125,7 +125,7 @@ root_obj = connection.root()
 
 @app.post("/join_room")
 async def join_room(data: JoinRequest):
-    room = root_obj.active_room  
+    room = root_obj.get('active_room')
     
     if not room or room.getRoomID() != data.roomID:
         raise HTTPException(status_code=404, detail="Room not found on this server!")
