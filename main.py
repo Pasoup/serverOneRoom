@@ -57,20 +57,25 @@ def claim_server(data: RoomCreateRequest):
     }
 
 @app.get("/room_info")
-def get_room_info():
+def get_room_info(username: str = None):
     if root.active_room is None:
         return {"status": "available"}
     
     room = root.active_room
-    return {
-        "status": "active",
-        "name": room.getRoomName(),
-        "id": room.getRoomID(),
-        "admin": room.getAdmin().getName(),
-        "description": room.getDescription(),
-        "members" : room.getMember()
-    }
+    is_admin = (room.getAdmin().getName() == username)
+    is_member = (username in room.member)
 
+    if is_admin or is_member:
+        return {
+            "status": "active",
+            "name": room.getRoomName(),
+            "description": room.description,
+            "roomID": room.getRoomID(),
+            "color": room.color,
+            "role": "admin" if is_admin else "member"
+        }
+    
+    return {"status": "access_denied"}
 
 
 # Manages users typing in the workshop
