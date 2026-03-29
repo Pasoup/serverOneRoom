@@ -30,6 +30,11 @@ class RoomCreateRequest(BaseModel):
     admin_id: str
     admin_pno: str
 
+class JoinRequest(BaseModel):
+    username: str
+    roomID: str
+    
+
 @app.post("/claim_server")
 def claim_server(data: RoomCreateRequest):
     creator_admin = Admin(
@@ -72,10 +77,17 @@ def get_room_info(username: str = None):
             "description": room.description,
             "roomID": room.getRoomID(),
             "color": room.color,
-            "role": "admin" if is_admin else "member"
+            "role": "admin" if is_admin else "member",
         }
     
     return {"status": "access_denied"}
+
+@app.get("/room_members")
+def get_room_members():
+    if root.active_room is None:
+        return {"members": []}
+    
+    return {"members": root.active_room.member}
 
 
 # Manages users typing in the workshop
@@ -107,3 +119,34 @@ async def websocket_endpoint(websocket: WebSocket):
             await manager.broadcast(data)
     except WebSocketDisconnect:
         manager.disconnect(websocket)
+
+
+# Example of what your Render Server (FastAPI) might be doing:
+@app.post("/join_room")
+async def join_room(data: JoinRequest):
+    # 1. Find the room in the database
+    room = db.rooms.find_one({"roomID": data.roomID})
+    
+    if not room:
+        raise HTTPException(status_code=404, detail="Room not found!")
+
+    # 2. Add the user to the members list (if not already there)
+    if data.username not in room["members"]:
+        db.rooms.update_one(
+            {"roomID": data.roomID},
+            {"$push": {"members": data.username}}
+        )
+    
+    return {"status": "success", "message": f"{data.username} joined {room['name']}"}
+
+
+@app.get("/get_members")
+async def get_members(roomID: str):
+    # 1. Find the room in your database/storage
+    room = db.rooms.find_one({"roomID": roomID}) # Example using MongoDB
+    
+    if not room:
+        return {"error": "Room not found"}, 404
+        
+    # 2. Return the 'members' list (which is just a list of strings)
+    return {"members": room.get("members", [])}
