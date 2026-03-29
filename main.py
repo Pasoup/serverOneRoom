@@ -5,6 +5,7 @@ import ZODB, ZODB.FileStorage
 import transaction
 from persistent import Persistent
 from classFiles.RoomClass import RoomObj, Chat, Workshop, Admin
+from classFiles.UserClass import User
 app = FastAPI()
 
 db_path = "/data/room1.fs" if os.path.exists("/data") else "room1.fs"
@@ -23,29 +24,37 @@ class RoomCreateRequest(BaseModel):
     description: str
     roomID: str
     color: str
-    admin_username: str
+    # Admin Data
+    admin_name: str
+    admin_gmail: str
+    admin_id: str
+    admin_pno: str
 
 @app.post("/claim_server")
 def claim_server(data: RoomCreateRequest):
-    creatorAdmin = Admin(name=data.admin_username)
-    admin_obj = root.users.get(data.admin_username) 
-        
-    if not admin_obj:
-        raise HTTPException(status_code=404, detail="Admin User not found in DB")
-
+    creator_admin = Admin(
+            name=data.admin_name,
+            gmail=data.admin_gmail,
+            id=data.admin_id,
+            pno=data.admin_pno
+        )
    
     new_room = RoomObj(
         Rname=data.Rname,
         RID=data.RID,
         desc=data.desc,
         color=data.color,
-        admin=creatorAdmin, 
+        admin=creator_admin, 
         mem=[data.admin_username]
     )
 
     root.active_room = new_room
     transaction.commit()
-    return {"status": "success"}
+    return {
+        "status": "success", 
+        "admin": new_room.getAdmin().getName(),
+        "room": new_room.getRoomName()
+    }
 
 @app.get("/room_info")
 def get_room_info():
