@@ -4,8 +4,7 @@ from pydantic import BaseModel
 import ZODB, ZODB.FileStorage
 import transaction
 from persistent import Persistent
-from classFiles.RoomClass import RoomObj, Chat, Workshop 
-
+from classFiles.RoomClass import RoomObj, Chat, Workshop, Admin
 app = FastAPI()
 
 db_path = "/data/room1.fs" if os.path.exists("/data") else "room1.fs"
@@ -28,33 +27,25 @@ class RoomCreateRequest(BaseModel):
 
 @app.post("/claim_server")
 def claim_server(data: RoomCreateRequest):
-    
-    if data.admin_username not in root.users:
-        raise HTTPException(status_code=404, detail="User not found")
-    
-    admin_user = root.users[data.admin_username]
+    creatorAdmin = Admin(name=data.admin_username)
+    admin_obj = root.users.get(data.admin_username) 
+        
+    if not admin_obj:
+        raise HTTPException(status_code=404, detail="Admin User not found in DB")
 
    
-    # We pass the user object as the admin
     new_room = RoomObj(
-        Rname=data.name,
-        RID=data.roomID,
-        desc=data.description,
+        Rname=data.Rname,
+        RID=data.RID,
+        desc=data.desc,
         color=data.color,
-        admin=admin_user 
+        admin=creatorAdmin, 
+        mem=[data.admin_username]
     )
 
-   
     root.active_room = new_room
-    
-
     transaction.commit()
-    
-    return {
-        "status": "success",
-        "message": f"Server is now {new_room.getRoomName()}",
-        "admin": new_room.getAdmin().getName()
-    }
+    return {"status": "success"}
 
 @app.get("/room_info")
 def get_room_info():
