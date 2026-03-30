@@ -6,6 +6,8 @@ import transaction
 from persistent import Persistent
 from classFiles.RoomClass import RoomObj, Chat, Workshop, Admin
 from classFiles.UserClass import User
+from datetime import timedelta
+
 app = FastAPI()
 
 db_path = "/data/room1.fs" if os.path.exists("/data") else "room1.fs"
@@ -51,7 +53,6 @@ async def send_chat(msg: ChatMessage):
     
     
     room.chat._p_changed = True
-    room._p_changed = True
     transaction.commit()
     
     return {"status": "success"}
@@ -69,9 +70,12 @@ async def get_chat(roomID: str):
 
     output = []
     for c in history:
-        time_obj, sender, content = c.getDetail()
+        timeObj, sender, content = c.getDetail()
+
+        localTime = timeObj + timedelta(hours=7)
+
         output.append({
-            "time": time_obj.strftime("%H:%M"),
+            "time": localTime.strftime("%H:%M"),
             "sender": sender,
             "content": content
         })
