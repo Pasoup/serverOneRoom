@@ -152,32 +152,42 @@ def get_room_members():
 # Manages users typing in the workshop
 class ConnectionManager:
     def __init__(self):
-        # Change from a list to a dictionary: { "room_id": [WebSocket, WebSocket] }
+        # 1. Dictionary for active sockets (grouped by room)
         self.active_connections: dict[str, list[WebSocket]] = {}
+        
+        # 2. Dictionary to store the actual text code for each room!
+        self.room_documents: dict[str, str] = {}
 
     async def connect(self, websocket: WebSocket, room_id: str):
         await websocket.accept()
         
-        # If this room doesn't exist yet, create an empty list for it
         if room_id not in self.active_connections:
             self.active_connections[room_id] = []
+            # Initialize empty document for new rooms
+            self.room_documents[room_id] = "" 
             
-        # Add the user to their specific room
         self.active_connections[room_id].append(websocket)
+        
+        # 3. IMMEDIATELY send the current room's code to the new user so they can unlock!
+        current_code = self.room_documents[room_id]
+        await websocket.send_text(current_code)
 
     def disconnect(self, websocket: WebSocket, room_id: str):
-        # Remove the user from their specific room
         if room_id in self.active_connections:
             if websocket in self.active_connections[room_id]:
                 self.active_connections[room_id].remove(websocket)
             
-            # Optional cleanup: If the room is empty now, delete the room
+            # Optional cleanup: if room is empty, you can delete it to save RAM
             if len(self.active_connections[room_id]) == 0:
                 del self.active_connections[room_id]
+                if room_id in self.room_documents:
+                    del self.room_documents[room_id]
 
     async def broadcast(self, message: str, room_id: str):
-        # ONLY send the message to people in this specific room
         if room_id in self.active_connections:
+            # 4. Update the saved document for this room whenever someone types
+            self.room_documents[room_id] = message 
+            
             for connection in self.active_connections[room_id]:
                 await connection.send_text(message)
 
