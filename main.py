@@ -152,18 +152,34 @@ def get_room_members():
 # Manages users typing in the workshop
 class ConnectionManager:
     def __init__(self):
-        self.active_connections: list[WebSocket] = []
+        # Change from a list to a dictionary: { "room_id": [WebSocket, WebSocket] }
+        self.active_connections: dict[str, list[WebSocket]] = {}
 
-    async def connect(self, websocket: WebSocket):
+    async def connect(self, websocket: WebSocket, room_id: str):
         await websocket.accept()
-        self.active_connections.append(websocket)
+        
+        # If this room doesn't exist yet, create an empty list for it
+        if room_id not in self.active_connections:
+            self.active_connections[room_id] = []
+            
+        # Add the user to their specific room
+        self.active_connections[room_id].append(websocket)
 
-    def disconnect(self, websocket: WebSocket):
-        self.active_connections.remove(websocket)
+    def disconnect(self, websocket: WebSocket, room_id: str):
+        # Remove the user from their specific room
+        if room_id in self.active_connections:
+            if websocket in self.active_connections[room_id]:
+                self.active_connections[room_id].remove(websocket)
+            
+            # Optional cleanup: If the room is empty now, delete the room
+            if len(self.active_connections[room_id]) == 0:
+                del self.active_connections[room_id]
 
-    async def broadcast(self, message: str):
-        for connection in self.active_connections:
-            await connection.send_text(message)
+    async def broadcast(self, message: str, room_id: str):
+        # ONLY send the message to people in this specific room
+        if room_id in self.active_connections:
+            for connection in self.active_connections[room_id]:
+                await connection.send_text(message)
 
 manager = ConnectionManager()
 
