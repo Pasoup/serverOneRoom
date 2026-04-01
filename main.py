@@ -133,11 +133,21 @@ def get_room_info(username: str = None):
 @app.get("/room_info/free")
 def get_free_info():
     room = root.active_room
+    
+    # Safety check: if there is no active room at all
+    if room is None:
+        return {"status": "no_room", "member_count": 0}
+
+    # Count the members in the list
+    member_count = len(room.member)
+    
     return {
         "status" : "activate",
         "name" : room.getRoomName(),
         "description" : room.description,
-        "roomID" : room.getRoomID()
+        "roomID" : room.getRoomID(),
+        "member_count": member_count,
+        "has_members": member_count > 0
     }
 
 @app.get("/room_members")
