@@ -57,7 +57,6 @@ async def send_chat(msg: ChatMessage):
     
     return {"status": "success"}
 
-
 @app.get("/get_chat")
 async def get_chat(roomID: str):
     room = root_obj.get('active_room')
@@ -209,3 +208,21 @@ async def get_members(roomID: str):
             raise HTTPException(status_code=404, detail="Room not found")
             
     return {"members": room.member}
+
+
+@app.post("/leave_room")
+async def leave_room(data: JoinRequest): 
+    room = root_obj.get('active_room')
+    
+    if not room or room.getRoomID() != data.roomID:
+        raise HTTPException(status_code=404, detail="Room not found")
+
+    if data.username in room.member:
+        room.member.remove(data.username)
+        
+       
+        room._p_changed = True 
+        transaction.commit()
+        return {"status": "success", "message": f"{data.username} left the room"}
+    
+    return {"status": "error", "message": "User was not in the room"}
